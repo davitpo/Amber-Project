@@ -32,7 +32,7 @@ Something that could have existed if BMW engineers in the late 1990s had access 
 
 From that moment, the project became something much larger than a digital clock.
 
-It became a philosophy.
+It became a philosophy:)
 
 ---
 
