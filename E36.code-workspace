@@ -1,0 +1,41 @@
+{
+    "folders": [
+
+        {
+            "name": "Amber Project",
+            "path": "."
+        },
+
+        {
+            "name": "Firmware",
+            "path": "firmware/amber-clock"
+        },
+
+        {
+            "name": "Android",
+            "path": "android"
+        },
+
+        {
+            "name": "Documentation",
+            "path": "docs"
+        }
+
+    ],
+
+    "settings": {
+
+        "files.exclude": {
+            "**/.pio": true,
+            "**/.git": true
+        },
+
+        "search.exclude": {
+            "**/.pio": true
+        },
+
+        "files.associations": {
+            "*.tpp": "cpp"
+        }
+    }
+}
