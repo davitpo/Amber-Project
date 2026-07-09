@@ -5,7 +5,7 @@ namespace amber {
 
 struct Theme {
     struct Colors {
-        static constexpr uint16_t Amber = 0xFD20;
+        static constexpr uint16_t Amber = 0xFBE0; //(255, 126, 0)
         static constexpr uint16_t Black = 0x0000;
     };
 

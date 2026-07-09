@@ -4,23 +4,23 @@
 
 namespace amber {
 
-void ClockFace::draw(lgfx::LGFX_Device& tft) {
+void ClockFace::draw(LovyanGFX& tft) {
     drawBackground(tft);
     drawOuterRing(tft);
     drawHourMarkers(tft);
     drawCenter(tft);
 }
 
-void ClockFace::drawBackground(lgfx::LGFX_Device& tft) {
+void ClockFace::drawBackground(LovyanGFX& tft) {
     tft.fillScreen(Theme::Colors::Black);
 }
 
-void ClockFace::drawOuterRing(lgfx::LGFX_Device& tft) {
+void ClockFace::drawOuterRing(LovyanGFX& tft) {
     tft.drawCircle(Theme::Clock::CenterX, Theme::Clock::CenterY, Theme::Clock::ROuter, Theme::Colors::Amber);
     tft.drawCircle(Theme::Clock::CenterX, Theme::Clock::CenterY, Theme::Clock::ROuter - 1, Theme::Colors::Amber);
 }
 
-void ClockFace::drawHourMarkers(lgfx::LGFX_Device& tft) {
+void ClockFace::drawHourMarkers(LovyanGFX& tft) {
     for (uint8_t i = 0; i < 12; i++) {
         Point p1 = Geometry::hourMarkerInner(i);
         Point p2 = Geometry::hourMarkerOuter(i);
@@ -28,7 +28,7 @@ void ClockFace::drawHourMarkers(lgfx::LGFX_Device& tft) {
     }
 }
 
-void ClockFace::drawCenter(lgfx::LGFX_Device& tft) {
+void ClockFace::drawCenter(LovyanGFX& tft) {
     tft.fillCircle(Theme::Clock::CenterX, Theme::Clock::CenterY, 3, Theme::Colors::Amber);
 }
 

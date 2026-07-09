@@ -7,13 +7,13 @@ namespace amber {
 class ClockFace {
 public:
     ClockFace() = default;
-    void draw(lgfx::LGFX_Device& tft);
+    void draw(LovyanGFX& tft);
 
 private:
-    void drawBackground(lgfx::LGFX_Device& tft);
-    void drawOuterRing(lgfx::LGFX_Device& tft);
-    void drawHourMarkers(lgfx::LGFX_Device& tft);
-    void drawCenter(lgfx::LGFX_Device& tft);
+    void drawBackground(LovyanGFX& tft);
+    void drawOuterRing(LovyanGFX& tft);
+    void drawHourMarkers(LovyanGFX& tft);
+    void drawCenter(LovyanGFX& tft);
 };
 
 } // namespace amber

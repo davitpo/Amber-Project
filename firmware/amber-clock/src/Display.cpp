@@ -1,4 +1,5 @@
 #include "Display.hpp"
+#include "Logger.hpp"
 #include <Arduino.h>
 
 #define TFT_BL   3
@@ -44,12 +45,55 @@ Display::LGFX_Custom::LGFX_Custom() {
     setPanel(&_panel);
 }
 
-Display::Display() : _tft() {}
+Display::Display() : _tft(), _sprite(&_tft) {}
 
-void Display::init() {
+bool Display::begin() {
     pinMode(TFT_BL, OUTPUT);
     digitalWrite(TFT_BL, HIGH);
+    
     _tft.init();
+
+    _sprite.setPsram(false);
+    _sprite.setColorDepth(16);
+    _sprite.setBuffer(nullptr, 240, 240, 16);
+    void* ptr = _sprite.createSprite(240, 240);
+    
+    if (ptr != nullptr) {
+        _spriteAllocated = true;
+        _mode = RenderMode::FullSprite;
+        LOG_INFO("Display initialization: LGFX Sprite allocated successfully (FullSprite mode).");
+    } else {
+        _spriteAllocated = false;
+        _mode = RenderMode::DirectSafe;
+        LOG_INFO("Display initialization: LGFX Sprite allocation failed! Falling back (DirectSafe mode).");
+    }
+
+    return true;
+}
+
+LovyanGFX& Display::target() {
+    if (_mode == RenderMode::FullSprite && _spriteAllocated) {
+        return _sprite;
+    }
+    return _tft;
+}
+
+void Display::pushFrame() {
+    if (_mode == RenderMode::FullSprite && _spriteAllocated) {
+        _sprite.pushSprite(0, 0);
+    }
+}
+
+RenderMode Display::renderMode() const {
+    return _mode;
+}
+
+uint32_t Display::freeHeap() const {
+    return ESP.getFreeHeap();
+}
+
+uint32_t Display::minFreeHeap() const {
+    return ESP.getMinFreeHeap();
 }
 
 lgfx::LGFX_Device& Display::getTft() {

@@ -1,14 +1,14 @@
 #pragma once
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
-#include "Clock.hpp"
+#include "ClockAngles.hpp"
 
 namespace amber {
 
 class ClockHands {
 public:
     ClockHands() = default;
-    void draw(lgfx::LGFX_Device& tft, const Clock& clock);
+    void draw(LovyanGFX& tft, const ClockAngles& angles);
 };
 
 } // namespace amber
