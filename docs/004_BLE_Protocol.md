@@ -31,3 +31,43 @@ The Amber Project reserves custom UUID allocations to distinct services and char
 | `0x4000` - `0x40FF` | **Media & Audio** | Track name, artists, play state, active notifications |
 
 *Specific characteristic registers and bit-wise packet configurations will be defined during Phase 2.*
+
+---
+
+# Amber Command Protocol
+
+Version 1
+
+## Command Syntax
+All messages sent via the Amber Command Protocol (ACP) v1 must be formatted in clear ASCII text, with trailing or leading spaces and carriage-return/linefeed (CR/LF) indicators fully trimmed on receipt. Commands are case-insensitive.
+
+Format structure: `COMMAND` or `COMMAND=parameter_value` up to 64 bytes.
+
+---
+
+## Validation Rules
+*   **PING**: Zero parameter format validation. Response payload is `PONG`.
+*   **VERSION**: Zero parameter format validation. Response payload is version text.
+*   **GETTIME**: Not implemented yet.
+*   **STATUS**: Not implemented yet.
+*   **GETBRIGHTNESS**: Not implemented yet.
+*   **SETTIME**: Parameter format `hh:mm:ss` (strictly 8 characters, with colons separating fields). Hour must fall in standard range `0..23`, minute and second fields are checked between bounds `0..59`. Execution is marked NOT IMPLEMENTED yet.
+*   **BRIGHTNESS**: Parameter format is a numerical integer between bounds `0..100`. Fractional, negative, or format strings with alphabetic descriptors are rejected. Execution is marked NOT IMPLEMENTED yet.
+
+---
+
+## Response Format
+*   `OK`: Action processed successfully.
+*   `PONG`: Reply validation response.
+*   `ERROR=UNKNOWN_COMMAND`: The inputted command keyword does not exist or matches nothing.
+*   `ERROR=INVALID_FORMAT`: Argument formats or character descriptors mismatch the specified rules.
+*   `ERROR=OUT_OF_RANGE`: Integer inputs exceed validation boundaries.
+
+---
+
+## Examples
+*   `PING` -> `PONG`
+*   `SETTIME=12:36:45` -> `OK` (Execution: NOT_IMPLEMENTED)
+*   `SETTIME=25:00:00` -> `ERROR=OUT_OF_RANGE`
+*   `BRIGHTNESS=80` -> `OK` (Execution: NOT_IMPLEMENTED)
+*   `BRIGHTNESS=-5` -> `ERROR=INVALID_FORMAT`
