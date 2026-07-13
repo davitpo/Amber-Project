@@ -15,6 +15,10 @@ public:
     uint32_t freeHeap() const;
     uint32_t minFreeHeap() const;
     lgfx::LGFX_Device& getTft();
+    
+    // Read/Write display backlight brightness (0..100) percent
+    uint8_t getBrightnessPercent() const;
+    void setBrightnessPercent(uint8_t percent);
 
 private:
     class LGFX_Custom : public lgfx::LGFX_Device {
@@ -28,6 +32,7 @@ private:
     LGFX_Sprite _sprite;
     RenderMode _mode = RenderMode::DirectSafe;
     bool _spriteAllocated = false;
+    uint8_t _brightnessPercent = 100; // default initial state value
 };
 
 } // namespace amber

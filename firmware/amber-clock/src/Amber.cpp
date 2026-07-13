@@ -231,22 +231,19 @@ void Amber::processCommand(CommandSource source, const uint8_t* data, size_t len
                 LOG_INFO("END");
                 break;
             }
-            case AcpCommandType::GetBrightness:
-                sendResponse(source, "ERROR=NOT_IMPLEMENTED");
+            case AcpCommandType::GetBrightness: {
+                char brightBuf[32];
+                snprintf(brightBuf, sizeof(brightBuf), "BRIGHTNESS=%u", GlobalAmberInstance->getBrightnessPercent());
+                sendResponse(source, brightBuf);
                 break;
+            }
             case AcpCommandType::SetTime:
-                snprintf(logMsg, sizeof(logMsg), "ACP(%s) Command SETTIME h=%d m=%d s=%d received.", 
-                         (source == CommandSource::UART) ? "UART" : "BLE",
-                         result.command.time.hour, result.command.time.minute, result.command.time.second);
-                LOG_INFO(logMsg);
-                sendResponse(source, "ERROR=NOT_IMPLEMENTED");
+                GlobalAmberInstance->setLocalTime(result.command.time.hour, result.command.time.minute, result.command.time.second);
+                sendResponse(source, "OK");
                 break;
             case AcpCommandType::SetBrightness:
-                snprintf(logMsg, sizeof(logMsg), "ACP(%s) Command BRIGHTNESS value=%d received.", 
-                         (source == CommandSource::UART) ? "UART" : "BLE",
-                         result.command.brightnessPercent);
-                LOG_INFO(logMsg);
-                sendResponse(source, "ERROR=NOT_IMPLEMENTED");
+                GlobalAmberInstance->setBrightnessPercent(result.command.brightnessPercent);
+                sendResponse(source, "OK");
                 break;
             case AcpCommandType::Help:
                 if (result.command.helpArg[0] != '\0') {

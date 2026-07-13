@@ -9,6 +9,21 @@
 #define TFT_SCLK 6
 #define TFT_MOSI 7
 
+// Constexpr 8-bit Q-Format gamma 2.2 approximation mapping table for user percent input (0..100)
+static const uint8_t PROGMEM GammaTable[101] = {
+    0,   0,   0,   0,   0,   1,   1,   1,   1,   2,
+    2,   2,   3,   3,   4,   4,   5,   5,   6,   7,
+    7,   8,   9,   10,  11,  12,  13,  14,  15,  16,
+    17,  18,  19,  21,  22,  23,  25,  26,  28,  29,
+    31,  33,  34,  36,  38,  40,  42,  44,  46,  48,
+    50,  52,  54,  57,  59,  61,  64,  66,  69,  71,
+    74,  77,  79,  82,  85,  88,  91,  94,  97,  100,
+    103, 106, 110, 113, 116, 120, 123, 127, 130, 134,
+    138, 142, 145, 149, 153, 157, 161, 165, 170, 174,
+    178, 183, 187, 192, 196, 201, 206, 210, 215, 220,
+    255 // Ensures full max capacity on 100 percent
+};
+
 namespace amber {
 
 Display::LGFX_Custom::LGFX_Custom() {
@@ -49,7 +64,7 @@ Display::Display() : _tft(), _sprite(&_tft) {}
 
 bool Display::begin() {
     pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, HIGH);
+    digitalWrite(TFT_BL, LOW); // Initialize low first to avoid bright flashes during boot
     
     _tft.init();
 
@@ -67,6 +82,9 @@ bool Display::begin() {
         _mode = RenderMode::DirectSafe;
         LOG_INFO("Display initialization: LGFX Sprite allocation failed! Falling back (DirectSafe mode).");
     }
+
+    // Apply startup default brightness
+    setBrightnessPercent(_brightnessPercent);
 
     return true;
 }
@@ -94,6 +112,27 @@ uint32_t Display::freeHeap() const {
 
 uint32_t Display::minFreeHeap() const {
     return ESP.getMinFreeHeap();
+}
+
+uint8_t Display::getBrightnessPercent() const {
+    return _brightnessPercent;
+}
+
+void Display::setBrightnessPercent(uint8_t percent) {
+    if (percent > 100) {
+        percent = 100;
+    }
+    _brightnessPercent = percent;
+
+    // Retrieve perceptual gamma mapped PWM level from look-up table
+    uint8_t pwmVal = pgm_read_byte(&GammaTable[percent]);
+    
+    // Output active-high PWM signaling directly to GPIO3 using stable Arduino framework analogWrite API
+    analogWrite(TFT_BL, pwmVal);
+
+    char logMsg[64];
+    snprintf(logMsg, sizeof(logMsg), "DISPLAY BRIGHTNESS=%d PWM=%d", percent, pwmVal);
+    LOG_INFO(logMsg);
 }
 
 lgfx::LGFX_Device& Display::getTft() {

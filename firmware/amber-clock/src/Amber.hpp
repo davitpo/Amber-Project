@@ -47,6 +47,14 @@ public:
     uint8_t getClockHour() const { return _clock.hour(); }
     uint8_t getClockMinute() const { return _clock.minute(); }
     uint8_t getClockSecond() const { return _clock.second(); }
+
+    uint8_t getBrightnessPercent() const { return _display.getBrightnessPercent(); }
+    void setBrightnessPercent(uint8_t percent) { _display.setBrightnessPercent(percent); }
+
+    void setLocalTime(uint8_t h, uint8_t m, uint8_t s) {
+        _clock.setTime(h, m, s);
+        _lastTickMs = millis();
+    }
     
     // Read local time layout as standard ClockTime structure
     ClockTime getLocalTime() const { return _clock.getTime(); }
