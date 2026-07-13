@@ -66,9 +66,23 @@ public:
     uint32_t getFps() const { return _fps; }
 
     static void processCommand(CommandSource source, const uint8_t* data, size_t length);
+    static void sendAcpResponse(CommandSource source, const char* msg);
 };
 
 // Global reference wrapper accessor for Acp command response builders
 extern Amber* GlobalAmberInstance;
+
+// Shared polymorphic response abstract wrappers
+class UartResponseWriter : public AcpResponseWriter {
+public:
+    void writeLine(const char* line) override;
+    void endResponse() override;
+};
+
+class BleResponseWriter : public AcpResponseWriter {
+public:
+    void writeLine(const char* line) override;
+    void endResponse() override;
+};
 
 } // namespace amber

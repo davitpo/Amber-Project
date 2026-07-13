@@ -7,6 +7,40 @@ namespace amber {
 
 Amber* GlobalAmberInstance = nullptr;
 
+void UartResponseWriter::writeLine(const char* line) {
+    char prefixedLine[160];
+    snprintf(prefixedLine, sizeof(prefixedLine), "ACP(UART) < %s", line);
+    LOG_INFO(prefixedLine);
+}
+
+void UartResponseWriter::endResponse() {
+    char prefixLine[64];
+    snprintf(prefixLine, sizeof(prefixLine), "ACP(UART) < END");
+    LOG_INFO(prefixLine);
+}
+
+void BleResponseWriter::writeLine(const char* line) {
+    if (GlobalAmberInstance != nullptr) {
+        // Log debug trace local console prefix
+        char prefixedLine[160];
+        snprintf(prefixedLine, sizeof(prefixedLine), "ACP(BLE) < %s", line);
+        LOG_INFO(prefixedLine);
+
+        // Enqueue response to safe TX Queue
+        GlobalAmberInstance->sendAcpResponse(CommandSource::BLE, line);
+    }
+}
+
+void BleResponseWriter::endResponse() {
+    if (GlobalAmberInstance != nullptr) {
+        char prefixLine[164];
+        snprintf(prefixLine, sizeof(prefixLine), "ACP(BLE) < END");
+        LOG_INFO(prefixLine);
+
+        GlobalAmberInstance->sendAcpResponse(CommandSource::BLE, "END");
+    }
+}
+
 void Amber::begin() {
     GlobalAmberInstance = this;
     
@@ -115,53 +149,44 @@ void Amber::renderDynamicLayer(LovyanGFX& target, float fractionalSecond) {
     _clockHands.draw(target, _clock.getAngles(fractionalSecond));
 }
 
-static void sendResponse(CommandSource source, const char* msg) {
-    char prefixedResponse[160];
-    const char* transportTag = (source == CommandSource::UART) ? "ACP(UART)" : "ACP(BLE)";
-    
-    // Add uniform responsive trace markers
-    snprintf(prefixedResponse, sizeof(prefixedResponse), "%s < %s", transportTag, msg);
-    LOG_INFO(prefixedResponse);
+void Amber::sendAcpResponse(CommandSource source, const char* msg) {
+    if (source == CommandSource::BLE && GlobalAmberInstance != nullptr) {
+        GlobalAmberInstance->_ble.enqueueResponseLine(msg);
+    }
 }
 
-static void sendHelpList(CommandSource source) {
-    const char* transportTag = (source == CommandSource::UART) ? "ACP(UART)" : "ACP(BLE)";
-    
-    char prefixLine[64];
-    snprintf(prefixLine, sizeof(prefixLine), "%s <", transportTag);
-    LOG_INFO(prefixLine);
-    
-    LOG_INFO("ACP Version 1 Help");
+static void sendHelpList(AcpResponseWriter& writer) {
+    writer.writeLine("ACP Version 1 Help");
     const char* categories[] = {"System", "Clock", "Display", "Diagnostics"};
     for (size_t c = 0; c < 4; c++) {
         char catHeader[32];
         snprintf(catHeader, sizeof(catHeader), "[%s]", categories[c]);
-        LOG_INFO(catHeader);
+        writer.writeLine(catHeader);
         for (size_t i = 0; i < CommandRegistry::TotalCommands; i++) {
             auto& item = CommandRegistry::Items[i];
             if (item.name != nullptr && strcmp(item.category, categories[c]) == 0) {
-                LOG_INFO(item.name);
+                writer.writeLine(item.name);
             }
         }
     }
-    LOG_INFO("END");
+    writer.endResponse();
 }
 
-static void printCommandInfo(CommandSource source, const RegisterItem& item) {
+static void printCommandInfo(AcpResponseWriter& writer, const RegisterItem& item) {
     char infoBuf[128];
     snprintf(infoBuf, sizeof(infoBuf), "COMMAND=%s", item.name);
-    sendResponse(source, infoBuf);
+    writer.writeLine(infoBuf);
     snprintf(infoBuf, sizeof(infoBuf), "CATEGORY=%s", item.category);
-    sendResponse(source, infoBuf);
+    writer.writeLine(infoBuf);
     snprintf(infoBuf, sizeof(infoBuf), "STATUS=%s", item.status);
-    sendResponse(source, infoBuf);
+    writer.writeLine(infoBuf);
     snprintf(infoBuf, sizeof(infoBuf), "ARGS=%d", item.argCount);
-    sendResponse(source, infoBuf);
+    writer.writeLine(infoBuf);
     if (item.argCount > 0) {
         snprintf(infoBuf, sizeof(infoBuf), "ARG1=%s", item.argDescription);
-        sendResponse(source, infoBuf);
+        writer.writeLine(infoBuf);
         snprintf(infoBuf, sizeof(infoBuf), "FORMAT=%s", item.argFormat);
-        sendResponse(source, infoBuf);
+        writer.writeLine(infoBuf);
     }
 }
 
@@ -181,156 +206,157 @@ void Amber::processCommand(CommandSource source, const uint8_t* data, size_t len
     snprintf(debugTrace, sizeof(debugTrace), "%s > %s", srcTag, valCopy);
     LOG_INFO(debugTrace);
 
+    // Command trace instrument print
+    char commandTrace[128];
+    snprintf(commandTrace, sizeof(commandTrace), "ACP COMMAND=%s", valCopy);
+    LOG_INFO(commandTrace);
+
+    // Associate current parsing key reference inside BleService diagnostics trackers
+    if (source == CommandSource::BLE) {
+        GlobalAmberInstance->_ble.setActiveCommand(valCopy);
+    }
+
+    LOG_INFO("ACP EXECUTE BEGIN");
+    uint32_t buildStartMs = millis();
+
+    // Polymorphically allocate the appropriate writer context based on active transport source
+    UartResponseWriter uartWriter;
+    BleResponseWriter bleWriter;
+    AcpResponseWriter* pWriter = nullptr;
+    if (source == CommandSource::UART) {
+        pWriter = &uartWriter;
+    } else {
+        pWriter = &bleWriter;
+    }
+
     AcpParseResult result = AcpProtocol::parse(data, length);
     if (result.success) {
         char logMsg[128];
         switch (result.command.type) {
             case AcpCommandType::Ping:
-                sendResponse(source, "PONG");
+                pWriter->writeLine("PONG");
                 break;
             case AcpCommandType::Version:
-                sendResponse(source, "VERSION=0.5.0");
+                pWriter->writeLine("VERSION=0.5.0");
                 break;
             case AcpCommandType::GetTime: {
                 ClockTime ct = GlobalAmberInstance->getLocalTime();
                 char timeBuf[64];
                 snprintf(timeBuf, sizeof(timeBuf), "TIME=%02d:%02d:%02d", ct.hour, ct.minute, ct.second);
-                sendResponse(source, timeBuf);
+                pWriter->writeLine(timeBuf);
                 break;
             }
             case AcpCommandType::Status: {
-                // Return multi-line responses cleanly prefixing lines and terminating in END
-                char prefixLine[64];
-                snprintf(prefixLine, sizeof(prefixLine), "%s <", srcTag);
-                LOG_INFO(prefixLine);
-
                 char statBuf[128];
                 snprintf(statBuf, sizeof(statBuf), "TIME=%02d:%02d:%02d", 
                          GlobalAmberInstance->getClockHour(), GlobalAmberInstance->getClockMinute(), GlobalAmberInstance->getClockSecond());
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
                 snprintf(statBuf, sizeof(statBuf), "RENDER_MODE=%s", GlobalAmberInstance->getRenderModeStr());
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
                 snprintf(statBuf, sizeof(statBuf), "BLE=%s", GlobalAmberInstance->isBleConnected() ? "CONNECTED" : "DISCONNECTED");
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
                 snprintf(statBuf, sizeof(statBuf), "HEAP_FREE=%u", GlobalAmberInstance->getFreeHeap());
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
                 snprintf(statBuf, sizeof(statBuf), "HEAP_MIN=%u", GlobalAmberInstance->getMinFreeHeap());
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
-                // Continuous, active FPS metrics reporting
                 snprintf(statBuf, sizeof(statBuf), "FPS=%u", GlobalAmberInstance->getFps());
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
                 snprintf(statBuf, sizeof(statBuf), "UPTIME_MS=%lu", millis());
-                LOG_INFO(statBuf);
+                pWriter->writeLine(statBuf);
                 
-                LOG_INFO("END");
+                pWriter->endResponse();
                 break;
             }
             case AcpCommandType::GetBrightness: {
                 char brightBuf[32];
                 snprintf(brightBuf, sizeof(brightBuf), "BRIGHTNESS=%u", GlobalAmberInstance->getBrightnessPercent());
-                sendResponse(source, brightBuf);
+                pWriter->writeLine(brightBuf);
                 break;
             }
             case AcpCommandType::SetTime:
                 GlobalAmberInstance->setLocalTime(result.command.time.hour, result.command.time.minute, result.command.time.second);
-                sendResponse(source, "OK");
+                pWriter->writeLine("OK");
                 break;
             case AcpCommandType::SetBrightness:
                 GlobalAmberInstance->setBrightnessPercent(result.command.brightnessPercent);
-                sendResponse(source, "OK");
+                pWriter->writeLine("OK");
                 break;
             case AcpCommandType::Help:
                 if (result.command.helpArg[0] != '\0') {
                     const RegisterItem* spec = CommandRegistry::findByName(result.command.helpArg);
                     if (spec != nullptr) {
-                        char prefixLine[64];
-                        snprintf(prefixLine, sizeof(prefixLine), "%s <", srcTag);
-                        LOG_INFO(prefixLine);
-
-                        LOG_INFO("--------------------------------");
+                        pWriter->writeLine("--------------------------------");
                         snprintf(logMsg, sizeof(logMsg), "Command     : %s", spec->name);
-                        LOG_INFO(logMsg);
+                        pWriter->writeLine(logMsg);
                         snprintf(logMsg, sizeof(logMsg), "Category    : %s", spec->category);
-                        LOG_INFO(logMsg);
+                        pWriter->writeLine(logMsg);
                         snprintf(logMsg, sizeof(logMsg), "Usage       : %s", spec->usage);
-                        LOG_INFO(logMsg);
+                        pWriter->writeLine(logMsg);
                         snprintf(logMsg, sizeof(logMsg), "Description : %s", spec->description);
-                        LOG_INFO(logMsg);
+                        pWriter->writeLine(logMsg);
                         snprintf(logMsg, sizeof(logMsg), "Status      : %s", spec->status);
-                        LOG_INFO(logMsg);
-                        LOG_INFO("--------------------------------");
-                        LOG_INFO("END");
+                        pWriter->writeLine(logMsg);
+                        pWriter->writeLine("--------------------------------");
+                        pWriter->endResponse();
                     } else {
-                        sendResponse(source, "ERROR=UNKNOWN_COMMAND");
+                        pWriter->writeLine("ERROR=UNKNOWN_COMMAND");
                     }
                 } else {
-                    sendHelpList(source);
+                    sendHelpList(*pWriter);
                 }
                 break;
             case AcpCommandType::Info:
                 if (result.command.infoArg[0] != '\0') {
                     if (strcmp(result.command.infoArg, "ALL") == 0) {
-                        char prefixLine[64];
-                        snprintf(prefixLine, sizeof(prefixLine), "%s <", srcTag);
-                        LOG_INFO(prefixLine);
-
                         for (size_t i = 0; i < CommandRegistry::TotalCommands; i++) {
-                            printCommandInfo(source, CommandRegistry::Items[i]);
-                            LOG_INFO("---");
+                            printCommandInfo(*pWriter, CommandRegistry::Items[i]);
+                            pWriter->writeLine("---");
                         }
-                        LOG_INFO("END");
+                        pWriter->endResponse();
                     } else {
                         const RegisterItem* spec = CommandRegistry::findByName(result.command.infoArg);
                         if (spec != nullptr) {
-                            char prefixLine[64];
-                            snprintf(prefixLine, sizeof(prefixLine), "%s <", srcTag);
-                            LOG_INFO(prefixLine);
-
-                            printCommandInfo(source, *spec);
-                            LOG_INFO("END");
+                            printCommandInfo(*pWriter, *spec);
+                            pWriter->endResponse();
                         } else {
-                            sendResponse(source, "ERROR=UNKNOWN_COMMAND");
+                            pWriter->writeLine("ERROR=UNKNOWN_COMMAND");
                         }
                     }
                 } else {
-                    sendResponse(source, "ERROR=MISSING_ARGUMENT");
+                    pWriter->writeLine("ERROR=MISSING_ARGUMENT");
                 }
                 break;
             case AcpCommandType::Health:
                 if (result.command.healthSub == HealthSubCommand::Query) {
-                    char prefixLine[64];
-                    snprintf(prefixLine, sizeof(prefixLine), "%s <", srcTag);
-                    LOG_INFO(prefixLine);
-
                     char healthBuf[128];
                     snprintf(healthBuf, sizeof(healthBuf), "HEALTH_ENABLED=%s", 
                              GlobalAmberInstance->_healthMonitor.isEnabled() ? "TRUE" : "FALSE");
-                    LOG_INFO(healthBuf);
+                    pWriter->writeLine(healthBuf);
                     snprintf(healthBuf, sizeof(healthBuf), "HEALTH_INTERVAL_MS=%u", 
                              GlobalAmberInstance->_healthMonitor.getInterval());
-                    LOG_INFO(healthBuf);
-                    LOG_INFO("END");
+                    pWriter->writeLine(healthBuf);
+                    pWriter->endResponse();
                 } else if (result.command.healthSub == HealthSubCommand::On) {
                     GlobalAmberInstance->_healthMonitor.setEnabled(true);
-                    sendResponse(source, "HEALTH_ENABLED=TRUE");
+                    pWriter->writeLine("HEALTH_ENABLED=TRUE");
                 } else if (result.command.healthSub == HealthSubCommand::Off) {
                     GlobalAmberInstance->_healthMonitor.setEnabled(false);
-                    sendResponse(source, "HEALTH_ENABLED=FALSE");
+                    pWriter->writeLine("HEALTH_ENABLED=FALSE");
                 } else if (result.command.healthSub == HealthSubCommand::SetInterval) {
                     GlobalAmberInstance->_healthMonitor.setInterval(result.command.healthIntervalMs);
                     char intervalBuf[64];
                     snprintf(intervalBuf, sizeof(intervalBuf), "HEALTH_INTERVAL_MS=%u", result.command.healthIntervalMs);
-                    sendResponse(source, intervalBuf);
+                    pWriter->writeLine(intervalBuf);
                 }
                 break;
             default:
-                sendResponse(source, "ERROR=UNKNOWN_COMMAND");
+                pWriter->writeLine("ERROR=UNKNOWN_COMMAND");
                 break;
         }
     } else {
@@ -338,28 +364,35 @@ void Amber::processCommand(CommandSource source, const uint8_t* data, size_t len
             case AcpParseError::Empty:
                 break;
             case AcpParseError::TooLong:
-                sendResponse(source, "ERROR=TOO_LONG");
+                pWriter->writeLine("ERROR=TOO_LONG");
                 break;
             case AcpParseError::UnknownCommand:
-                sendResponse(source, "ERROR=UNKNOWN_COMMAND");
+                pWriter->writeLine("ERROR=UNKNOWN_COMMAND");
                 break;
             case AcpParseError::MissingArgument:
-                sendResponse(source, "ERROR=MISSING_ARGUMENT");
+                pWriter->writeLine("ERROR=MISSING_ARGUMENT");
                 break;
             case AcpParseError::InvalidFormat:
-                sendResponse(source, "ERROR=INVALID_FORMAT");
+                pWriter->writeLine("ERROR=INVALID_FORMAT");
                 break;
             case AcpParseError::OutOfRange:
-                sendResponse(source, "ERROR=OUT_OF_RANGE");
+                pWriter->writeLine("ERROR=OUT_OF_RANGE");
                 break;
             case AcpParseError::InvalidSyntax:
-                sendResponse(source, "ERROR=INVALID_SYNTAX");
+                pWriter->writeLine("ERROR=INVALID_SYNTAX");
                 break;
             default:
-                sendResponse(source, "ERROR=UNKNOWN_COMMAND");
+                pWriter->writeLine("ERROR=UNKNOWN_COMMAND");
                 break;
         }
     }
+
+    uint32_t executeDurationMs = millis() - buildStartMs;
+    char executeTimeBuf[64];
+    snprintf(executeTimeBuf, sizeof(executeTimeBuf), "ACP_EXECUTE_MS=%lu", executeDurationMs);
+    LOG_INFO(executeTimeBuf);
+
+    LOG_INFO("ACP EXECUTE END");
 }
 
 void Amber::runPeriodicTelemetry() {
