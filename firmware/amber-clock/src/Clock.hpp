@@ -5,6 +5,12 @@
 
 namespace amber {
 
+struct ClockTime {
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+};
+
 class Clock {
 private:
     uint8_t _hour = 0;
@@ -38,6 +44,10 @@ public:
     uint8_t hour() const { return _hour; }
     uint8_t minute() const { return _minute; }
     uint8_t second() const { return _second; }
+
+    ClockTime getTime() const {
+        return ClockTime{_hour, _minute, _second};
+    }
 
     ClockAngles getAngles(float fractionalSecond = 0.0f) const {
         float secAndFrac = _second + fractionalSecond;

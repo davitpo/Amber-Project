@@ -7,7 +7,7 @@ const RegisterItem CommandRegistry::Items[TotalCommands] = {
     {"PING", AcpCommandType::Ping, "System", "PING", "Communication test", "Implemented", 1, 0, "None", "None"},
     {"VERSION", AcpCommandType::Version, "System", "VERSION", "Get device version", "Implemented", 1, 0, "None", "None"},
     {"HELP", AcpCommandType::Help, "System", "HELP or HELP <command>", "Shows available commands", "Implemented", 1, 1, "Optional target command", "CommandName"},
-    {"GETTIME", AcpCommandType::GetTime, "Clock", "GETTIME", "Get current time", "Implemented", 1, 0, "None", "None"},
+    {"GETTIME", AcpCommandType::GetTime, "Clock", "GETTIME", "Read current local clock time", "Implemented", 1, 0, "None", "None"},
     {"SETTIME", AcpCommandType::SetTime, "Clock", "SETTIME <hh:mm:ss>", "Set local clock", "Planned", 1, 1, "Target clock time", "hh:mm:ss"},
     {"STATUS", AcpCommandType::Status, "Diagnostics", "STATUS", "Get diagnostic system reports", "Implemented", 1, 0, "None", "None"},
     {"GETBRIGHTNESS", AcpCommandType::GetBrightness, "Display", "GETBRIGHTNESS", "Get current backlight level", "Implemented", 1, 0, "None", "None"},

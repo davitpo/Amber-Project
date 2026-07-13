@@ -191,9 +191,13 @@ void Amber::processCommand(CommandSource source, const uint8_t* data, size_t len
             case AcpCommandType::Version:
                 sendResponse(source, "VERSION=0.5.0");
                 break;
-            case AcpCommandType::GetTime:
-                sendResponse(source, "ERROR=NOT_IMPLEMENTED");
+            case AcpCommandType::GetTime: {
+                ClockTime ct = GlobalAmberInstance->getLocalTime();
+                char timeBuf[64];
+                snprintf(timeBuf, sizeof(timeBuf), "TIME=%02d:%02d:%02d", ct.hour, ct.minute, ct.second);
+                sendResponse(source, timeBuf);
                 break;
+            }
             case AcpCommandType::Status: {
                 // Return multi-line responses cleanly prefixing lines and terminating in END
                 char prefixLine[64];

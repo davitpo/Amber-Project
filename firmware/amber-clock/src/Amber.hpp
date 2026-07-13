@@ -47,6 +47,10 @@ public:
     uint8_t getClockHour() const { return _clock.hour(); }
     uint8_t getClockMinute() const { return _clock.minute(); }
     uint8_t getClockSecond() const { return _clock.second(); }
+    
+    // Read local time layout as standard ClockTime structure
+    ClockTime getLocalTime() const { return _clock.getTime(); }
+
     const char* getRenderModeStr() const { return (_display.renderMode() == RenderMode::FullSprite) ? "FullSprite" : "DirectSafe"; }
     bool isBleConnected() const { return _ble.isConnected(); }
     uint32_t getFreeHeap() const { return _display.freeHeap(); }

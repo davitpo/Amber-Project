@@ -77,8 +77,9 @@ AcpParseResult AcpProtocol::parse(const uint8_t* data, size_t length) {
         return result;
     }
 
+    // Reject GETTIME or similar zero-arg commands with arguments
     if (item->argCount == 0 && argVal != nullptr) {
-        result.error = AcpParseError::InvalidFormat;
+        result.error = AcpParseError::InvalidSyntax;
         return result;
     }
 
