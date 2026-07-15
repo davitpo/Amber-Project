@@ -2,10 +2,52 @@
     <string name="app_name">Amber Clock</string>
     <string name="status_label">Status</string>
     <string name="status_disconnected">Disconnected</string>
-    <string name="status_scanning">Scanning…</string>
+    <string name="status_scanning">Status: Scanning…</string>
     <string name="scan">Scan</string>
     <string name="connect">Connect</string>
     <string name="response_label">Response</string>
     <string name="no_response">—</string>
     <string name="scan_placeholder">BLE scan will be added in M9.3.</string>
+    <!-- M9.3 Localized user interface string keys -->
+    <string name="status_device_found">Status: Amber Clock found</string>
+    <string name="status_not_found">Status: Not found</string>
+    <string name="status_permission_denied">Status: Permission denied</string>
+    <string name="status_bluetooth_disabled">Status: Bluetooth disabled</string>
+    <string name="status_scan_failed">Status: Scan failed</string>
+    <string name="searching_for_amber">Searching for Amber Clock…</string>
+    <string name="amber_not_found">Amber Clock was not found.</string>
+    <string name="permission_required_desc">Required Bluetooth/Location has been denied. Enforce permissions manually inside system configurations.</string>
+    <string name="bluetooth_disabled_desc">Bluetooth is currently disabled. Please enable Bluetooth on your system settings adapter.</string>
+
+    <!-- M9.4 local connection and service description strings -->
+    <string name="status_connecting">Status: Connecting…</string>
+    <string name="status_connected_discovering">Status: Connected</string>
+    <string name="status_connected_ready">Status: Amber Clock connected</string>
+    <string name="status_connection_failed">Status: Connection failed</string>
+    <string name="descr_connecting">Connecting to Amber Clock…</string>
+    <string name="descr_discovering_services">Discovering Amber services…</string>
+    <string name="descr_connection_closed">Connection closed.</string>
+    <string name="action_disconnect">Disconnect</string>
+    <string name="action_scan">Scan</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_send">Send</string>
+    <string name="title_local_time">Local Time</string>
+    <string name="title_display_brightness">Display Brightness</string>
+    <string name="title_diagnostics">Diagnostics</string>
+
+    <!-- M9.5a user localization resources -->
+    <string name="status_enabling_notifications">Status: Enabling notifications…</string>
+    <string name="status_amber_ready">Status: Amber Clock ready</string>
+    <string name="descr_notif_enabling">SERVICE=FOUND\nRX=READY\nTX=READY\nNOTIFY=ENABLING</string>
+    <string name="descr_notif_enabled">SERVICE=FOUND\nRX=READY\nTX=READY\nNOTIFY=ENABLED</string>
+
+    <!-- M9.6 localized console terminal strings -->
+    <string name="acp_terminal">ACP Terminal</string>
+    <string name="acp_command_hint">ACP command</string>
+    <string name="action_clear_terminal">Clear</string>
+    <string name="error_acp_write_failed">ERROR=ACP_WRITE_FAILED status=</string>
+    <string name="error_command_empty">! ERROR: Command is empty</string>
+    <string name="error_command_too_long">! ERROR: Command exceeds 64 bytes</string>
+    <string name="error_command_ctrl_chars">! ERROR: Command contains CR, LF or NUL characters</string>
+    <string name="error_transport_not_ready">! ERROR: Transport is not ready</string>
 </resources>

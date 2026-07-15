@@ -20,3 +20,33 @@ The first repository was initialized with a clear target: build a hardware modul
 
 ## [Future Entries Space]
 *Journal entries will continue here as milestones are reached and the architecture matures.*
+
+## 2026-07-15 — Android Toolchain Note
+
+Interesting Android ecosystem observation:
+
+AndroidX libraries may require a newer compileSdk than the current
+Android Gradle Plugin officially supports.
+
+Example encountered:
+
+androidx.activity:activity:1.13.0
+→ requires compileSdk >= 36
+
+androidx.core:core-ktx:1.19.0
+→ requires compileSdk >= 37
+→ also requires Android Gradle Plugin 9.1+
+
+Current Amber baseline:
+
+AGP          8.10.1
+compileSdk   35
+targetSdk    35
+minSdk       24
+
+Decision:
+Pin AndroidX dependencies to stable versions compatible with the current
+toolchain instead of upgrading the entire Android SDK/AGP stack during M9.
+
+Lesson learned:
+A newer library version is not always the better choice for a stable project baseline.
