@@ -1,3 +1,11 @@
 <resources>
-    <string name="app_name">Amber</string>
+    <string name="app_name">Amber Clock</string>
+    <string name="status_label">Status</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_scanning">Scanning…</string>
+    <string name="scan">Scan</string>
+    <string name="connect">Connect</string>
+    <string name="response_label">Response</string>
+    <string name="no_response">—</string>
+    <string name="scan_placeholder">BLE scan will be added in M9.3.</string>
 </resources>
